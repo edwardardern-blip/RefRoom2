@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RefHub - Student Reference Library</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(to bottom right, #e0e7ff, #fae8ff);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        
+        .header-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .logo {
+            background: linear-gradient(135deg, #9333ea, #ec4899);
+            padding: 12px;
+            border-radius: 16px;
+            color: white;
+            font-size: 32px;
+        }
+        
+        .title {
+            font-size: 36px;
+            font-weight: bold;
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 10px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(to right, #2563eb, #06b6d4);
+            color: white;
+        }
+        
+        .btn-gray {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 16px;
+        }
+        
+        .filters {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .input, .select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        
+        .input:focus, .select:focus {
+            outline: none;
+            border-color: #9333ea;
+        }
+        
+        .reference-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+        
+        .reference-card:hover {
+            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+        }
+        
+        .card-content {
+            display: flex;
+            gap: 24px;
+        }
+        
+        .voting {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .vote-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .vote-btn:hover {
+            background: #f3f4f6;
+            transform: scale(1.1);
+        }
+        
+        .vote-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #16a34a;
+        }
+        
+        .card-main {
+            flex: 1;
+        }
+        
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #9333ea;
+            margin-bottom: 12px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .card-title:hover {
+            text-decoration: underline;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .badge-subject {
+            background: linear-gradient(to right, #ddd6fe, #fce7f3);
+            color: #7c3aed;
+        }
+        
+        .badge-tag {
+            background: #f3f4f6;
+            color: #374151;
+            font-size: 12px;
+        }
+        
+        .description {
+            color: #374151;
+            line-height: 1.6;
+            margin: 16px 0;
+        }
+        
+        .meta {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            padding: 16px;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(to right, #9333ea, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        
+        .user-info {
+            text-align: right;
+            margin-right: 16px;
+        }
+        
+        .username {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .reputation {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .card-content {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo-area">
+                <div class="logo">📚</div>
+                <div>
+                    <div class="title">RefHub</div>
+                    <div class="subtitle">Student-powered academic resources</div>
+                </div>
+            </div>
+            <div class="header-buttons">
+                <div id="userSection"></div>
+                <button class="btn btn-secondary" onclick="showAddModal()">+ Add Resource</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-grid">
+                <input type="text" class="input" id="searchInput" placeholder="Search resources..." onkeyup="filterReferences()">
+                <select class="select" id="subjectFilter" onchange="filterReferences()">
+                    <option value="all">All Subjects</option>
+                </select>
+                <select class="select" id="sortFilter" onchange="filterReferences()">
+                    <option value="votes">Most Popular</option>
+                    <option value="recent">Most Recent</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- References List -->
+        <div id="referencesList"></div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="authTitle">Welcome Back</h2>
+            <form onsubmit="handleAuth(event)">
+                <div class="form-group" id="usernameGroup" style="display:none;">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="authUsername" placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="authEmail" required placeholder="your.email@university.edu">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="authPassword" required placeholder="••••••••">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">
+                        <span id="authButton">Login</span>
+                    </button>
+                    <button type="button" class="btn btn-gray" style="flex:1;" onclick="closeModal('loginModal')">Cancel</button>
+                </div>
+            </form>
+            <button type="button" class="btn" style="width:100%;margin-top:16px;background:transparent;color:#9333ea;" onclick="toggleAuthMode()">
+                <span id="authToggle">Don't have an account? Sign up</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Reference Modal -->
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Share a Resource</h2>
+            <form onsubmit="handleAddReference(event)">
+                <div class="form-group">
+                    <label class="form-label">Title *</label>
+                    <input type="text" class="form-input" id="refTitle" required placeholder="e.g., Khan Academy - Linear Algebra">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL *</label>
+                    <input type="url" class="form-input" id="refUrl" required placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Subject *</label>
+                    <select class="form-select" id="refSubject" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description *</label>
+                    <textarea class="form-textarea" id="refDescription" required placeholder="Brief description..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-secondary" style="flex:1;">Add Reference</button>
+                    <button type="button" class="btn btn-gray" style="flex:1;" onclick="closeModal('addModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        let references = [
+            {
+                id: 1,
+                title: "Khan Academy - Linear Algebra",
+                url: "https://www.khanacademy.org/math/linear-algebra",
+                subject: "Mathematics",
+                description: "Comprehensive video series covering vectors, matrices, and transformations with interactive exercises",
+                upvotes: 145,
+                downvotes: 8,
+                userVotes: {},
+                addedBy: "Alex P.",
+                dateAdded: "2024-11-15",
+                verified: true
+            },
+            {
+                id: 2,
+                title: "MIT OpenCourseWare - Introduction to Psychology",
+                url: "https://ocw.mit.edu/courses/introduction-to-psychology/",
+                subject: "Psychology",
+                description: "Full lecture series from MIT covering fundamental psychology concepts with readings and assignments",
+                upvotes: 98,
+                downvotes: 5,
+                userVotes: {},
+                addedBy: "Michael T.",
+                dateAdded: "2024-11-20",
+                verified: true
+            },
+            {
+                id: 3,
+                title: "Paul's Online Math Notes",
+                url: "http://tutorial.math.lamar.edu/",
+                subject: "Mathematics",
+                description: "Detailed notes and practice problems for calculus, differential equations, and algebra",
+                upvotes: 187,
+                downvotes: 3,
+                userVotes: {},
+                addedBy: "Rachel G.",
+                dateAdded: "2024-11-10",
+                verified: true
+            }
+        ];
+
+        const subjects = ["Mathematics", "Computer Science", "Physics", "Chemistry", "Biology", "Psychology", "History", "Literature", "Economics"];
+        
+        let currentUser = null;
+        let authMode = 'login';
+
+        // Initialize
+        function init() {
+            loadData();
+            updateUI();
+            populateSubjects();
+            renderReferences();
+        }
+
+        function loadData() {
+            try {
+                const savedRefs = localStorage.getItem('references');
+                if (savedRefs) references = JSON.parse(savedRefs);
+                
+                const savedUser = localStorage.getItem('currentUser');
+                if (savedUser) currentUser = JSON.parse(savedUser);
+            } catch (e) {
+                console.log('Storage not available');
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('references', JSON.stringify(references));
+                if (currentUser) {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                }
+            } catch (e) {
+                console.log('Could not save');
+            }
+        }
+
+        function updateUI() {
+            const userSection = document.getElementById('userSection');
+            if (currentUser) {
+                userSection.innerHTML = `
+                    <div class="user-info">
+                        <div class="username">${currentUser.username}</div>
+                        <div class="reputation">${currentUser.reputation || 0} rep</div>
+                    </div>
+                    <button class="btn btn-gray" onclick="logout()">Logout</button>
+                `;
+            } else {
+                userSection.innerHTML = `<button class="btn btn-primary" onclick="showLoginModal()">Login / Sign Up</button>`;
+            }
+        }
+
+        function populateSubjects() {
+            const subjectFilter = document.getElementById('subjectFilter');
+            const refSubject = document.getElementById('refSubject');
+            
+            subjects.forEach(subject => {
+                const option1 = document.createElement('option');
+                option1.value = subject;
+                option1.textContent = subject;
+                subjectFilter.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = subject;
+                option2.textContent = subject;
+                refSubject.appendChild(option2);
+            });
+        }
+
+        function renderReferences() {
+            const list = document.getElementById('referencesList');
+            const filtered = getFilteredReferences();
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="reference-card"><p style="text-align:center;color:#6b7280;">No resources found</p></div>';
+                return;
+            }
+            
+            list.innerHTML = filtered.map(ref => {
+                const netVotes = ref.upvotes - ref.downvotes;
+                const userVote = currentUser ? ref.userVotes[currentUser.id] : null;
+                
+                return `
+                    <div class="reference-card">
+                        <div class="card-content">
+                            <div class="voting">
+                                <button class="vote-btn" onclick="vote(${ref.id}, 'up')" style="color: ${userVote === 'up' ? '#16a34a' : '#9ca3af'}">👍</button>
+                                <div class="vote-count" style="color: ${netVotes > 0 ? '#16a34a' : netVotes < 0 ? '#dc2626' : '#6b7280'}">
+                                    ${netVotes > 0 ? '+' : ''}${netVotes}
+                                </div>
+                                <button class="vote-btn" onclick="vote(${ref.id}, 'down')" style="color: ${userVote === 'down' ? '#dc2626' : '#9ca3af'}">👎</button>
+                            </div>
+                            <div class="card-main">
+                                <a href="${ref.url}" target="_blank" class="card-title">${ref.title}</a>
+                                ${ref.verified ? ' ✓' : ''}
+                                <div>
+                                    <span class="badge badge-subject">${ref.subject}</span>
+                                </div>
+                                <p class="description">${ref.description}</p>
+                                <div class="meta">Added by ${ref.addedBy} on ${new Date(ref.dateAdded).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getFilteredReferences() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const subject = document.getElementById('subjectFilter').value;
+            const sort = document.getElementById('sortFilter').value;
+            
+            let filtered = references.filter(ref => {
+                const matchSearch = search === '' || ref.title.toLowerCase().includes(search) || ref.description.toLowerCase().includes(search);
+                const matchSubject = subject === 'all' || ref.subject === subject;
+                return matchSearch && matchSubject;
+            });
+            
+            if (sort === 'votes') {
+                filtered.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
+            } else {
+                filtered.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+            }
+            
+            return filtered;
+        }
+
+        function filterReferences() {
+            renderReferences();
+        }
+
+        function vote(id, type) {
+            if (!currentUser) {
+                alert('Please login to vote');
+                return;
+            }
+            
+            references = references.map(ref => {
+                if (ref.id === id) {
+                    const userVote = ref.userVotes[currentUser.id];
+                    
+                    if (userVote === 'up') ref.upvotes--;
+                    else if (userVote === 'down') ref.downvotes--;
+                    
+                    if (userVote !== type) {
+                        if (type === 'up') ref.upvotes++;
+                        else ref.downvotes++;
+                        ref.userVotes[currentUser.id] = type;
+                    } else {
+                        delete ref.userVotes[currentUser.id];
+                    }
+                }
+                return ref;
+            });
+            
+            saveData();
+            renderReferences();
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').classList.add('active');
+        }
+
+        function showAddModal() {
+            if (!currentUser) {
+                alert('Please login to add references');
+                return;
+            }
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function toggleAuthMode() {
+            authMode = authMode === 'login' ? 'signup' : 'login';
+            document.getElementById('authTitle').textContent = authMode === 'login' ? 'Welcome Back' : 'Join the Community';
+            document.getElementById('authButton').textContent = authMode === 'login' ? 'Login' : 'Create Account';
+            document.getElementById('authToggle').textContent = authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Login';
+            document.getElementById('usernameGroup').style.display = authMode === 'signup' ? 'block' : 'none';
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const username = document.getElementById('authUsername').value;
+            
+            if (authMode === 'signup') {
+                currentUser = {
+                    id: Date.now().toString(),
+                    username: username,
+                    email: email,
+                    reputation: 0
+                };
+            } else {
+                currentUser = {
+                    id: Date.now().toString(),
+                    username: email.split('@')[0],
+                    email: email,
+                    reputation: 0
+                };
+            }
+            
+            saveData();
+            updateUI();
+            closeModal('loginModal');
+            renderReferences();
+        }
+
+        function logout() {
+            currentUser = null;
+            try {
+                localStorage.removeItem('currentUser');
+            } catch (e) {}
+            updateUI();
+            renderReferences();
+        }
+
+        function handleAddReference(e) {
+            e.preventDefault();
+            
+            const newRef = {
+                id: Date.now(),
+                title: document.getElementById('refTitle').value,
+                url: document.getElementById('refUrl').value,
+                subject: document.getElementById('refSubject').value,
+                description: document.getElementById('refDescription').value,
+                upvotes: 0,
+                downvotes: 0,
+                userVotes: {},
+                addedBy: currentUser.username,
+                dateAdded: new Date().toISOString().split('T')[0],
+                verified: false
+            };
+            
+            references.unshift(newRef);
+            saveData();
+            renderReferences();
+            closeModal('addModal');
+            
+            // Reset form
+            e.target.reset();
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
