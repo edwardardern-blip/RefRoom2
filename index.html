@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RefHub - Student Reference Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        #root { min-h: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        console.log('Script starting...');
+        
+        // Simple in-memory storage
+        const storage = {
+            data: {},
+            get(key) { return this.data[key] ? { value: this.data[key] } : null; },
+            set(key, value) { this.data[key] = value; return { key, value }; }
+        };
+        
+        const { useState, useEffect } = React;
+        const { BookOpen, ThumbsUp, ThumbsDown, User, Plus, Search, Star, CheckCircle } = lucideReact;
+        
+        console.log('React loaded:', !!React);
+        console.log('Icons loaded:', !!lucideReact);
+        
+        function App() {
+            console.log('App rendering...');
+            
+            const [refs, setRefs] = useState([
+                {
+                    id: 1,
+                    title: "Khan Academy - Linear Algebra",
+                    url: "https://www.khanacademy.org/math/linear-algebra",
+                    subject: "Mathematics",
+                    description: "Comprehensive video series covering vectors and matrices",
+                    upvotes: 145,
+                    downvotes: 8,
+                    verified: true
+                },
+                {
+                    id: 2,
+                    title: "MIT OpenCourseWare - Psychology",
+                    url: "https://ocw.mit.edu/courses/introduction-to-psychology/",
+                    subject: "Psychology",
+                    description: "Full lecture series from MIT",
+                    upvotes: 98,
+                    downvotes: 5,
+                    verified: true
+                }
+            ]);
+            
+            const [user, setUser] = useState(null);
+            const [showLogin, setShowLogin] = useState(false);
+            
+            return React.createElement('div', { 
+                className: 'min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50'
+            },
+                // Header
+                React.createElement('div', { className: 'bg-white shadow-lg p-6' },
+                    React.createElement('div', { className: 'max-w-7xl mx-auto flex items-center justify-between' },
+                        React.createElement('div', { className: 'flex items-center gap-4' },
+                            React.createElement('div', { 
+                                className: 'bg-gradient-to-br from-purple-600 to-pink-600 p-3 rounded-2xl'
+                            }, React.createElement(BookOpen, { className: 'w-8 h-8 text-white' })),
+                            React.createElement('h1', { 
+                                className: 'text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'
+                            }, 'RefHub ✨')
+                        ),
+                        React.createElement('div', { className: 'flex gap-3' },
+                            user ? React.createElement('div', { className: 'flex items-center gap-3' },
+                                React.createElement('span', { className: 'font-semibold' }, user.username),
+                                React.createElement('button', {
+                                    onClick: () => setUser(null),
+                                    className: 'bg-gray-200 px-4 py-2 rounded-xl'
+                                }, 'Logout')
+                            ) : React.createElement('button', {
+                                onClick: () => setShowLogin(!showLogin),
+                                className: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-xl font-semibold'
+                            }, 'Login / Sign Up'),
+                            React.createElement('button', {
+                                onClick: () => alert(user ? 'Add feature coming!' : 'Please login first'),
+                                className: 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-xl font-semibold'
+                            }, '+ Add Resource')
+                        )
+                    )
+                ),
+                
+                // Login Form
+                showLogin && !user && React.createElement('div', {
+                    className: 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50',
+                    onClick: () => setShowLogin(false)
+                },
+                    React.createElement('div', {
+                        className: 'bg-white rounded-2xl p-8 max-w-md w-full',
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('h2', { className: 'text-2xl font-bold mb-4' }, 'Quick Login'),
+                        React.createElement('input', {
+                            type: 'text',
+                            placeholder: 'Username',
+                            id: 'username',
+                            className: 'w-full p-3 border-2 rounded-xl mb-3'
+                        }),
+                        React.createElement('button', {
+                            onClick: () => {
+                                const username = document.getElementById('username').value;
+                                if (username) {
+                                    setUser({ username, reputation: 0 });
+                                    setShowLogin(false);
+                                }
+                            },
+                            className: 'w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold'
+                        }, 'Login')
+                    )
+                ),
+                
+                // References
+                React.createElement('div', { className: 'max-w-7xl mx-auto p-8' },
+                    React.createElement('div', { className: 'space-y-6' },
+                        refs.map(ref => React.createElement('div', {
+                            key: ref.id,
+                            className: 'bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-all'
+                        },
+                            React.createElement('div', { className: 'flex gap-6' },
+                                // Voting
+                                React.createElement('div', { className: 'flex flex-col items-center gap-2' },
+                                    React.createElement('button', {
+                                        onClick: () => {
+                                            if (!user) return alert('Please login to vote');
+                                            setRefs(refs.map(r => r.id === ref.id ? {...r, upvotes: r.upvotes + 1} : r));
+                                        },
+                                        className: 'text-gray-400 hover:text-green-600'
+                                    }, React.createElement(ThumbsUp, { className: 'w-7 h-7' })),
+                                    React.createElement('span', { 
+                                        className: 'text-2xl font-bold text-green-600'
+                                    }, `+${ref.upvotes - ref.downvotes}`),
+                                    React.createElement('button', {
+                                        onClick: () => {
+                                            if (!user) return alert('Please login to vote');
+                                            setRefs(refs.map(r => r.id === ref.id ? {...r, downvotes: r.downvotes + 1} : r));
+                                        },
+                                        className: 'text-gray-400 hover:text-red-600'
+                                    }, React.createElement(ThumbsDown, { className: 'w-7 h-7' }))
+                                ),
+                                
+                                // Content
+                                React.createElement('div', { className: 'flex-1' },
+                                    React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
+                                        React.createElement('a', {
+                                            href: ref.url,
+                                            target: '_blank',
+                                            className: 'text-2xl font-bold text-purple-600 hover:underline'
+                                        }, ref.title),
+                                        ref.verified && React.createElement(CheckCircle, { 
+                                            className: 'w-6 h-6 text-blue-500'
+                                        })
+                                    ),
+                                    React.createElement('span', {
+                                        className: 'inline-block bg-purple-100 text-purple-800 px-4 py-1 rounded-full text-sm font-semibold mb-3'
+                                    }, ref.subject),
+                                    React.createElement('p', { className: 'text-gray-700 text-lg' }, ref.description)
+                                )
+                            )
+                        ))
+                    )
+                )
+            );
+        }
+        
+        console.log('Creating root...');
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        console.log('Rendering app...');
+        root.render(React.createElement(App));
+        console.log('Done!');
+    </script>
+</body>
+</html>
