@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -453,7 +454,23 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHFzdG1lc25vYnR3ZXlzaXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzUwNjIsImV4cCI6MjA4MzMxMTA2Mn0.mTsSXwn23n1XokGr0XMSyNw2SIzzlqezFJ7MgDB8UTw';
         
         // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabase;
+        try {
+            if (!window.supabase) {
+                throw new Error('Supabase library failed to load');
+            }
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('Supabase initialized successfully!');
+        } catch (error) {
+            console.error('Supabase initialization error:', error);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="error" style="max-width: 600px; margin: 50px auto;">
+                    <h2>Connection Error</h2>
+                    <p>${error.message}</p>
+                    <p>Please try refreshing the page or contact support.</p>
+                </div>
+            `;
+        }
         
         // State
         let currentUser = null;
@@ -942,7 +959,16 @@
         }
 
         // Initialize on load
-        init();
+        init().catch(error => {
+            console.error('Init error:', error);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="error" style="max-width: 600px; margin: 50px auto;">
+                    <h2>Failed to Initialize</h2>
+                    <p>${error.message}</p>
+                    <p>Error: ${error.toString()}</p>
+                </div>
+            `;
+        });
     </script>
 </body>
 </html>
