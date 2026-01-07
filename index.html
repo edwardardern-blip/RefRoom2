@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RefHub - Student Reference Library</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -58,6 +59,7 @@
         .header-buttons {
             display: flex;
             gap: 12px;
+            align-items: center;
         }
         
         .btn {
@@ -88,6 +90,12 @@
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
         
         .container {
@@ -152,21 +160,25 @@
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 24px;
+            font-size: 28px;
             padding: 8px;
             border-radius: 8px;
             transition: all 0.2s;
         }
         
-        .vote-btn:hover {
+        .vote-btn:hover:not(:disabled) {
             background: #f3f4f6;
             transform: scale(1.1);
+        }
+        
+        .vote-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .vote-count {
             font-size: 24px;
             font-weight: bold;
-            color: #16a34a;
         }
         
         .card-main {
@@ -199,12 +211,6 @@
         .badge-subject {
             background: linear-gradient(to right, #ddd6fe, #fce7f3);
             color: #7c3aed;
-        }
-        
-        .badge-tag {
-            background: #f3f4f6;
-            color: #374151;
-            font-size: 12px;
         }
         
         .description {
@@ -300,6 +306,42 @@
             color: #6b7280;
         }
         
+        .loading {
+            text-align: center;
+            padding: 100px 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #9333ea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -308,6 +350,10 @@
             
             .card-content {
                 flex-direction: column;
+            }
+            
+            .filter-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -320,41 +366,32 @@
                 <div class="logo">📚</div>
                 <div>
                     <div class="title">RefHub</div>
-                    <div class="subtitle">Student-powered academic resources</div>
+                    <div class="subtitle">Student-powered academic resources • Real-time updates</div>
                 </div>
             </div>
             <div class="header-buttons">
                 <div id="userSection"></div>
-                <button class="btn btn-secondary" onclick="showAddModal()">+ Add Resource</button>
+                <button class="btn btn-secondary" onclick="showAddModal()" id="addBtn">+ Add Resource</button>
             </div>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="container">
-        <!-- Filters -->
-        <div class="filters">
-            <div class="filter-grid">
-                <input type="text" class="input" id="searchInput" placeholder="Search resources..." onkeyup="filterReferences()">
-                <select class="select" id="subjectFilter" onchange="filterReferences()">
-                    <option value="all">All Subjects</option>
-                </select>
-                <select class="select" id="sortFilter" onchange="filterReferences()">
-                    <option value="votes">Most Popular</option>
-                    <option value="recent">Most Recent</option>
-                </select>
+        <div id="mainContent">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading RefHub...</p>
             </div>
         </div>
-
-        <!-- References List -->
-        <div id="referencesList"></div>
     </div>
 
     <!-- Login Modal -->
     <div class="modal" id="loginModal">
         <div class="modal-content">
             <h2 class="modal-title" id="authTitle">Welcome Back</h2>
-            <form onsubmit="handleAuth(event)">
+            <div id="authError"></div>
+            <form onsubmit="handleAuth(event)" id="authForm">
                 <div class="form-group" id="usernameGroup" style="display:none;">
                     <label class="form-label">Username</label>
                     <input type="text" class="form-input" id="authUsername" placeholder="Choose a username">
@@ -365,10 +402,10 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">Password</label>
-                    <input type="password" class="form-input" id="authPassword" required placeholder="••••••••">
+                    <input type="password" class="form-input" id="authPassword" required placeholder="••••••••" minlength="6">
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" style="flex:1;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;" id="authSubmitBtn">
                         <span id="authButton">Login</span>
                     </button>
                     <button type="button" class="btn btn-gray" style="flex:1;" onclick="closeModal('loginModal')">Cancel</button>
@@ -384,7 +421,8 @@
     <div class="modal" id="addModal">
         <div class="modal-content">
             <h2 class="modal-title">Share a Resource</h2>
-            <form onsubmit="handleAddReference(event)">
+            <div id="addError"></div>
+            <form onsubmit="handleAddReference(event)" id="addForm">
                 <div class="form-group">
                     <label class="form-label">Title *</label>
                     <input type="text" class="form-input" id="refTitle" required placeholder="e.g., Khan Academy - Linear Algebra">
@@ -410,87 +448,123 @@
     </div>
 
     <script>
-        // Data
-        let references = [
-            {
-                id: 1,
-                title: "Khan Academy - Linear Algebra",
-                url: "https://www.khanacademy.org/math/linear-algebra",
-                subject: "Mathematics",
-                description: "Comprehensive video series covering vectors, matrices, and transformations with interactive exercises",
-                upvotes: 145,
-                downvotes: 8,
-                userVotes: {},
-                addedBy: "Alex P.",
-                dateAdded: "2024-11-15",
-                verified: true
-            },
-            {
-                id: 2,
-                title: "MIT OpenCourseWare - Introduction to Psychology",
-                url: "https://ocw.mit.edu/courses/introduction-to-psychology/",
-                subject: "Psychology",
-                description: "Full lecture series from MIT covering fundamental psychology concepts with readings and assignments",
-                upvotes: 98,
-                downvotes: 5,
-                userVotes: {},
-                addedBy: "Michael T.",
-                dateAdded: "2024-11-20",
-                verified: true
-            },
-            {
-                id: 3,
-                title: "Paul's Online Math Notes",
-                url: "http://tutorial.math.lamar.edu/",
-                subject: "Mathematics",
-                description: "Detailed notes and practice problems for calculus, differential equations, and algebra",
-                upvotes: 187,
-                downvotes: 3,
-                userVotes: {},
-                addedBy: "Rachel G.",
-                dateAdded: "2024-11-10",
-                verified: true
-            }
-        ];
-
-        const subjects = ["Mathematics", "Computer Science", "Physics", "Chemistry", "Biology", "Psychology", "History", "Literature", "Economics"];
+        // IMPORTANT: Replace these with your actual Supabase credentials
+        const SUPABASE_URL = 'https://afpqstmesnobtweysiuw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHFzdG1lc25vYnR3ZXlzaXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzUwNjIsImV4cCI6MjA4MzMxMTA2Mn0.mTsSXwn23n1XokGr0XMSyNw2SIzzlqezFJ7MgDB8UTw';
         
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // State
         let currentUser = null;
         let authMode = 'login';
+        let references = [];
+        let userVotes = {};
+        
+        const subjects = ["Mathematics", "Computer Science", "Physics", "Chemistry", "Biology", "Psychology", "History", "Literature", "Economics", "Philosophy", "Engineering", "Art & Design", "Business", "Medicine"];
 
         // Initialize
-        function init() {
-            loadData();
-            updateUI();
+        async function init() {
+            console.log('Initializing RefHub with Supabase...');
+            
+            // Check if user is logged in
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                await loadUserProfile(session.user.id);
+            }
+            
+            // Load references
+            await loadReferences();
+            
+            // Set up real-time subscriptions
+            setupRealtimeSubscriptions();
+            
             populateSubjects();
+            updateUI();
             renderReferences();
         }
 
-        function loadData() {
-            try {
-                const savedRefs = localStorage.getItem('references');
-                if (savedRefs) references = JSON.parse(savedRefs);
-                
-                const savedUser = localStorage.getItem('currentUser');
-                if (savedUser) currentUser = JSON.parse(savedUser);
-            } catch (e) {
-                console.log('Storage not available');
+        async function loadUserProfile(userId) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+            
+            if (data) {
+                currentUser = data;
             }
         }
 
-        function saveData() {
-            try {
-                localStorage.setItem('references', JSON.stringify(references));
-                if (currentUser) {
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                }
-            } catch (e) {
-                console.log('Could not save');
+        async function loadReferences() {
+            const { data, error } = await supabase
+                .from('references')
+                .select(`
+                    *,
+                    profiles:added_by (username)
+                `)
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Error loading references:', error);
+                showError('Failed to load references');
+                return;
             }
+            
+            references = data || [];
+            
+            // Load votes if user is logged in
+            if (currentUser) {
+                await loadUserVotes();
+            }
+        }
+
+        async function loadUserVotes() {
+            const { data, error } = await supabase
+                .from('votes')
+                .select('reference_id, vote_type')
+                .eq('user_id', currentUser.id);
+            
+            if (data) {
+                userVotes = {};
+                data.forEach(vote => {
+                    userVotes[vote.reference_id] = vote.vote_type;
+                });
+            }
+        }
+
+        function setupRealtimeSubscriptions() {
+            // Listen for new references
+            supabase
+                .channel('references-channel')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'references' },
+                    async (payload) => {
+                        console.log('References changed!', payload);
+                        await loadReferences();
+                        renderReferences();
+                    }
+                )
+                .subscribe();
+            
+            // Listen for vote changes
+            supabase
+                .channel('votes-channel')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'votes' },
+                    async (payload) => {
+                        console.log('Votes changed!', payload);
+                        await loadReferences();
+                        renderReferences();
+                    }
+                )
+                .subscribe();
         }
 
         function updateUI() {
             const userSection = document.getElementById('userSection');
+            const addBtn = document.getElementById('addBtn');
+            
             if (currentUser) {
                 userSection.innerHTML = `
                     <div class="user-info">
@@ -499,8 +573,11 @@
                     </div>
                     <button class="btn btn-gray" onclick="logout()">Logout</button>
                 `;
+                addBtn.disabled = false;
             } else {
                 userSection.innerHTML = `<button class="btn btn-primary" onclick="showLoginModal()">Login / Sign Up</button>`;
+                addBtn.disabled = true;
+                addBtn.title = "Please login to add resources";
             }
         }
 
@@ -508,64 +585,98 @@
             const subjectFilter = document.getElementById('subjectFilter');
             const refSubject = document.getElementById('refSubject');
             
-            subjects.forEach(subject => {
-                const option1 = document.createElement('option');
-                option1.value = subject;
-                option1.textContent = subject;
-                subjectFilter.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = subject;
-                option2.textContent = subject;
-                refSubject.appendChild(option2);
-            });
+            if (subjectFilter && refSubject) {
+                subjects.forEach(subject => {
+                    const option1 = document.createElement('option');
+                    option1.value = subject;
+                    option1.textContent = subject;
+                    subjectFilter.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = subject;
+                    option2.textContent = subject;
+                    refSubject.appendChild(option2);
+                });
+            }
         }
 
         function renderReferences() {
-            const list = document.getElementById('referencesList');
+            const mainContent = document.getElementById('mainContent');
             const filtered = getFilteredReferences();
             
-            if (filtered.length === 0) {
-                list.innerHTML = '<div class="reference-card"><p style="text-align:center;color:#6b7280;">No resources found</p></div>';
-                return;
-            }
+            mainContent.innerHTML = `
+                <!-- Filters -->
+                <div class="filters">
+                    <div class="filter-grid">
+                        <input type="text" class="input" id="searchInput" placeholder="Search resources..." onkeyup="renderReferences()">
+                        <select class="select" id="subjectFilter" onchange="renderReferences()">
+                            <option value="all">All Subjects</option>
+                        </select>
+                        <select class="select" id="sortFilter" onchange="renderReferences()">
+                            <option value="votes">Most Popular</option>
+                            <option value="recent">Most Recent</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- References List -->
+                <div id="referencesList">
+                    ${filtered.length === 0 ? 
+                        '<div class="reference-card"><p style="text-align:center;color:#6b7280;">No resources found. Be the first to add one!</p></div>' :
+                        filtered.map(renderReferenceCard).join('')
+                    }
+                </div>
+            `;
             
-            list.innerHTML = filtered.map(ref => {
-                const netVotes = ref.upvotes - ref.downvotes;
-                const userVote = currentUser ? ref.userVotes[currentUser.id] : null;
-                
-                return `
-                    <div class="reference-card">
-                        <div class="card-content">
-                            <div class="voting">
-                                <button class="vote-btn" onclick="vote(${ref.id}, 'up')" style="color: ${userVote === 'up' ? '#16a34a' : '#9ca3af'}">👍</button>
-                                <div class="vote-count" style="color: ${netVotes > 0 ? '#16a34a' : netVotes < 0 ? '#dc2626' : '#6b7280'}">
-                                    ${netVotes > 0 ? '+' : ''}${netVotes}
-                                </div>
-                                <button class="vote-btn" onclick="vote(${ref.id}, 'down')" style="color: ${userVote === 'down' ? '#dc2626' : '#9ca3af'}">👎</button>
+            populateSubjects();
+        }
+
+        function renderReferenceCard(ref) {
+            const netVotes = ref.upvotes - ref.downvotes;
+            const userVote = userVotes[ref.id];
+            const addedByUsername = ref.profiles?.username || 'Unknown';
+            
+            return `
+                <div class="reference-card">
+                    <div class="card-content">
+                        <div class="voting">
+                            <button class="vote-btn" onclick="vote(${ref.id}, 'up')" 
+                                style="color: ${userVote === 'up' ? '#16a34a' : '#9ca3af'}"
+                                ${!currentUser ? 'disabled' : ''}>👍</button>
+                            <div class="vote-count" style="color: ${netVotes > 0 ? '#16a34a' : netVotes < 0 ? '#dc2626' : '#6b7280'}">
+                                ${netVotes > 0 ? '+' : ''}${netVotes}
                             </div>
-                            <div class="card-main">
-                                <a href="${ref.url}" target="_blank" class="card-title">${ref.title}</a>
-                                ${ref.verified ? ' ✓' : ''}
-                                <div>
-                                    <span class="badge badge-subject">${ref.subject}</span>
-                                </div>
-                                <p class="description">${ref.description}</p>
-                                <div class="meta">Added by ${ref.addedBy} on ${new Date(ref.dateAdded).toLocaleDateString()}</div>
+                            <button class="vote-btn" onclick="vote(${ref.id}, 'down')" 
+                                style="color: ${userVote === 'down' ? '#dc2626' : '#9ca3af'}"
+                                ${!currentUser ? 'disabled' : ''}>👎</button>
+                        </div>
+                        <div class="card-main">
+                            <a href="${ref.url}" target="_blank" class="card-title">${ref.title}</a>
+                            ${ref.verified ? ' ✓' : ''}
+                            <div>
+                                <span class="badge badge-subject">${ref.subject}</span>
                             </div>
+                            <p class="description">${ref.description}</p>
+                            <div class="meta">Added by ${addedByUsername} • ${new Date(ref.created_at).toLocaleDateString()}</div>
                         </div>
                     </div>
-                `;
-            }).join('');
+                </div>
+            `;
         }
 
         function getFilteredReferences() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const subject = document.getElementById('subjectFilter').value;
-            const sort = document.getElementById('sortFilter').value;
+            const searchInput = document.getElementById('searchInput');
+            const subjectFilter = document.getElementById('subjectFilter');
+            const sortFilter = document.getElementById('sortFilter');
+            
+            const search = searchInput ? searchInput.value.toLowerCase() : '';
+            const subject = subjectFilter ? subjectFilter.value : 'all';
+            const sort = sortFilter ? sortFilter.value : 'votes';
             
             let filtered = references.filter(ref => {
-                const matchSearch = search === '' || ref.title.toLowerCase().includes(search) || ref.description.toLowerCase().includes(search);
+                const matchSearch = search === '' || 
+                    ref.title.toLowerCase().includes(search) || 
+                    ref.description.toLowerCase().includes(search);
                 const matchSubject = subject === 'all' || ref.subject === subject;
                 return matchSearch && matchSubject;
             });
@@ -573,42 +684,89 @@
             if (sort === 'votes') {
                 filtered.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
             } else {
-                filtered.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+                filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             }
             
             return filtered;
         }
 
-        function filterReferences() {
-            renderReferences();
-        }
-
-        function vote(id, type) {
+        async function vote(referenceId, voteType) {
             if (!currentUser) {
                 alert('Please login to vote');
                 return;
             }
             
-            references = references.map(ref => {
-                if (ref.id === id) {
-                    const userVote = ref.userVotes[currentUser.id];
-                    
-                    if (userVote === 'up') ref.upvotes--;
-                    else if (userVote === 'down') ref.downvotes--;
-                    
-                    if (userVote !== type) {
-                        if (type === 'up') ref.upvotes++;
-                        else ref.downvotes++;
-                        ref.userVotes[currentUser.id] = type;
+            try {
+                // Check if user already voted
+                const { data: existingVote } = await supabase
+                    .from('votes')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .eq('reference_id', referenceId)
+                    .single();
+                
+                if (existingVote) {
+                    if (existingVote.vote_type === voteType) {
+                        // Remove vote
+                        await supabase
+                            .from('votes')
+                            .delete()
+                            .eq('id', existingVote.id);
+                        
+                        // Update reference count
+                        const field = voteType === 'up' ? 'upvotes' : 'downvotes';
+                        const ref = references.find(r => r.id === referenceId);
+                        await supabase
+                            .from('references')
+                            .update({ [field]: ref[field] - 1 })
+                            .eq('id', referenceId);
                     } else {
-                        delete ref.userVotes[currentUser.id];
+                        // Change vote
+                        await supabase
+                            .from('votes')
+                            .update({ vote_type: voteType })
+                            .eq('id', existingVote.id);
+                        
+                        // Update both counts
+                        const ref = references.find(r => r.id === referenceId);
+                        const oldField = existingVote.vote_type === 'up' ? 'upvotes' : 'downvotes';
+                        const newField = voteType === 'up' ? 'upvotes' : 'downvotes';
+                        
+                        await supabase
+                            .from('references')
+                            .update({ 
+                                [oldField]: ref[oldField] - 1,
+                                [newField]: ref[newField] + 1
+                            })
+                            .eq('id', referenceId);
                     }
+                } else {
+                    // New vote
+                    await supabase
+                        .from('votes')
+                        .insert({
+                            user_id: currentUser.id,
+                            reference_id: referenceId,
+                            vote_type: voteType
+                        });
+                    
+                    // Update reference count
+                    const field = voteType === 'up' ? 'upvotes' : 'downvotes';
+                    const ref = references.find(r => r.id === referenceId);
+                    await supabase
+                        .from('references')
+                        .update({ [field]: ref[field] + 1 })
+                        .eq('id', referenceId);
                 }
-                return ref;
-            });
-            
-            saveData();
-            renderReferences();
+                
+                // Reload
+                await loadReferences();
+                renderReferences();
+                
+            } catch (error) {
+                console.error('Vote error:', error);
+                alert('Failed to vote. Please try again.');
+            }
         }
 
         function showLoginModal() {
@@ -625,6 +783,9 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+            // Clear errors
+            const errorDiv = document.getElementById(id === 'loginModal' ? 'authError' : 'addError');
+            if (errorDiv) errorDiv.innerHTML = '';
         }
 
         function toggleAuthMode() {
@@ -635,67 +796,149 @@
             document.getElementById('usernameGroup').style.display = authMode === 'signup' ? 'block' : 'none';
         }
 
-        function handleAuth(e) {
+        function showError(message, elementId = 'authError') {
+            const errorDiv = document.getElementById(elementId);
+            if (errorDiv) {
+                errorDiv.innerHTML = `<div class="error">${message}</div>`;
+            }
+        }
+
+        function showSuccess(message, elementId = 'authError') {
+            const errorDiv = document.getElementById(elementId);
+            if (errorDiv) {
+                errorDiv.innerHTML = `<div class="success">${message}</div>`;
+            }
+        }
+
+        async function handleAuth(e) {
             e.preventDefault();
+            
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
             const username = document.getElementById('authUsername').value;
             
-            if (authMode === 'signup') {
-                currentUser = {
-                    id: Date.now().toString(),
-                    username: username,
-                    email: email,
-                    reputation: 0
-                };
-            } else {
-                currentUser = {
-                    id: Date.now().toString(),
-                    username: email.split('@')[0],
-                    email: email,
-                    reputation: 0
-                };
-            }
+            const submitBtn = document.getElementById('authSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Please wait...';
             
-            saveData();
-            updateUI();
-            closeModal('loginModal');
-            renderReferences();
-        }
-
-        function logout() {
-            currentUser = null;
             try {
-                localStorage.removeItem('currentUser');
-            } catch (e) {}
+                if (authMode === 'signup') {
+                    // Sign up
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                    });
+                    
+                    if (error) throw error;
+                    
+                    if (data.user) {
+                        // Create profile
+                        const { error: profileError } = await supabase
+                            .from('profiles')
+                            .insert({
+                                id: data.user.id,
+                                username: username || email.split('@')[0],
+                                email: email,
+                                reputation: 0
+                            });
+                        
+                        if (profileError) throw profileError;
+                        
+                        showSuccess('Account created! Please check your email to confirm.');
+                        
+                        // Auto-login after signup
+                        await loadUserProfile(data.user.id);
+                        updateUI();
+                        setTimeout(() => closeModal('loginModal'), 2000);
+                    }
+                } else {
+                    // Login
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password,
+                    });
+                    
+                    if (error) throw error;
+                    
+                    if (data.user) {
+                        await loadUserProfile(data.user.id);
+                        updateUI();
+                        closeModal('loginModal');
+                        await loadReferences();
+                        renderReferences();
+                    }
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                showError(error.message || 'Authentication failed');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = authMode === 'login' ? 'Login' : 'Create Account';
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            userVotes = {};
             updateUI();
+            await loadReferences();
             renderReferences();
         }
 
-        function handleAddReference(e) {
+        async function handleAddReference(e) {
             e.preventDefault();
             
-            const newRef = {
-                id: Date.now(),
-                title: document.getElementById('refTitle').value,
-                url: document.getElementById('refUrl').value,
-                subject: document.getElementById('refSubject').value,
-                description: document.getElementById('refDescription').value,
-                upvotes: 0,
-                downvotes: 0,
-                userVotes: {},
-                addedBy: currentUser.username,
-                dateAdded: new Date().toISOString().split('T')[0],
-                verified: false
-            };
+            if (!currentUser) {
+                alert('Please login to add references');
+                return;
+            }
             
-            references.unshift(newRef);
-            saveData();
-            renderReferences();
-            closeModal('addModal');
+            const title = document.getElementById('refTitle').value;
+            const url = document.getElementById('refUrl').value;
+            const subject = document.getElementById('refSubject').value;
+            const description = document.getElementById('refDescription').value;
             
-            // Reset form
-            e.target.reset();
+            try {
+                const { data, error } = await supabase
+                    .from('references')
+                    .insert({
+                        title: title,
+                        url: url,
+                        subject: subject,
+                        description: description,
+                        added_by: currentUser.id,
+                        upvotes: 0,
+                        downvotes: 0,
+                        verified: false
+                    })
+                    .select();
+                
+                if (error) throw error;
+                
+                // Update user reputation
+                await supabase
+                    .from('profiles')
+                    .update({ reputation: (currentUser.reputation || 0) + 5 })
+                    .eq('id', currentUser.id);
+                
+                currentUser.reputation = (currentUser.reputation || 0) + 5;
+                
+                showSuccess('Reference added successfully!', 'addError');
+                
+                // Reset form and close
+                document.getElementById('addForm').reset();
+                setTimeout(() => closeModal('addModal'), 1500);
+                
+                // Reload references
+                await loadReferences();
+                renderReferences();
+                updateUI();
+                
+            } catch (error) {
+                console.error('Add reference error:', error);
+                showError(error.message || 'Failed to add reference', 'addError');
+            }
         }
 
         // Initialize on load
